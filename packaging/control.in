@@ -1,0 +1,18 @@
+Package: aptfz
+Version: @VERSION@
+Architecture: all
+Maintainer: @MAINTAINER@
+Installed-Size: @SIZE@
+Depends: python3 (>= 3.8), dpkg, apt
+Recommends: fzf
+Section: utils
+Priority: optional
+Description: interactive fzf and CLI explorer for installed apt packages
+ aptfz browses the packages installed on a Debian-based system through an
+ fzf picker with a colorized live preview; aptq runs the same query engine
+ non-interactively and prints one package name per line.
+ .
+ Filter by install reason (manual/automatic), by whether anything requires,
+ recommends or suggests a package, search any field, sort, total up sizes,
+ and attach personal notes to packages. The package cache refreshes itself
+ whenever dpkg or apt-mark change what is installed.

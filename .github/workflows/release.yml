@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version without a leading v, e.g. 0.2.0"
+        required: true
+      notes:
+        description: "Release notes (optional)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      # Inputs go through env vars, never interpolated into the scripts,
+      # so a stray quote in the notes can't break or inject into a step.
+      VERSION: ${{ inputs.version }}
+      NOTES: ${{ inputs.notes }}
+      BRANCH: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      # Shown as the .deb's Maintainer. Override with a repository variable named
+      # DEB_MAINTAINER (Settings > Secrets and variables > Actions > Variables).
+      MAINTAINER: ${{ vars.DEB_MAINTAINER || 'Marco Lux <89221170+MarcoLux06@users.noreply.github.com>' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate version
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]] || { echo "Bad version: $VERSION"; exit 1; }
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "Tag v$VERSION already exists"; exit 1
+          fi
+
+      # Everything below up to "Commit, tag and push" only changes the
+      # working tree. If tests or the build fail, nothing has been pushed.
+      - name: Bump version in the working tree
+        run: sed -i "s/^__version__ = .*/__version__ = \"$VERSION\"/" src/lib/config.py
+
+      - name: Run tests
+        run: |
+          pip install pytest
+          python -m pytest tests/ -q
+
+      - name: Build .deb
+        run: |
+          make deb MAINTAINER="$MAINTAINER"
+          cd build
+          sha256sum "aptfz_${VERSION}_all.deb" > "aptfz_${VERSION}_all.deb.sha256"
+
+      - name: Commit, tag and push
+        run: |
+          git config user.name "Marco Lux"
+          git config user.email "89221170+MarcoLux06@users.noreply.github.com"
+          git add src/lib/config.py
+          # The bump is a no-op when releasing the version already in the
+          # repo (e.g. the very first release): then just tag what is there.
+          if git diff --cached --quiet; then
+            echo "Version is already $VERSION; tagging the current commit."
+          else
+            git commit -m "Bump version to $VERSION"
+          fi
+          git tag "v$VERSION"
+          git push origin "HEAD:refs/heads/$BRANCH" "v$VERSION"
+
+      - name: Create release
+        run: |
+          printf '%s\n' "${NOTES:-Release $VERSION.}" > notes.md
+          gh release create "v$VERSION" \
+            "build/aptfz_${VERSION}_all.deb" "build/aptfz_${VERSION}_all.deb.sha256" \
+            --title "v$VERSION" --notes-file notes.md --verify-tag

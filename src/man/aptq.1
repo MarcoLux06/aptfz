@@ -1,0 +1,127 @@
+.TH APTQ 1 "2026-11-25" "aptfz 0.1.0" "User Commands"
+.SH NAME
+aptq \- non\-interactive query into the installed apt packages
+.SH SYNOPSIS
+.B aptq
+[OPTIONS]
+.SH DESCRIPTION
+.B aptq
+is the scriptable counterpart to
+.BR aptfz (1).
+It shares the exact same query engine and package cache and prints matching
+package names, one per line, with no picker, no colors and no extra prose.
+With
+.B \-t
+it prints only the total installed size.
+.PP
+Because its output is meant for pipes (\fBgrep\fR(1), \fBxargs\fR(1), ...),
+.B aptq
+never prints anything but results on standard output. Errors go to standard
+error and set a non\-zero exit status.
+.PP
+Package names are the names apt accepts: the plain name for packages of the
+native architecture and for architecture\-independent packages, and
+\fIname\fR:\fIarch\fR for packages of a foreign (multiarch) architecture.
+.SH OPTIONS
+.SS Filter options
+Filters combine with AND.
+.TP
+.BR \-e ", " \-\-explicit
+Only manually installed packages (\fBapt\-mark showmanual\fR).
+.TP
+.BR \-d ", " \-\-deps
+Only automatically installed packages, i.e. dependencies (\fBapt\-mark showauto\fR).
+.TP
+.BR \-n ", " \-\-notadep
+Only packages that no installed package requires (no installed package lists
+them in Depends or Pre\-Depends).
+.TP
+.BR \-k ", " \-\-notoptdep
+Only packages that no installed package recommends or suggests.
+.TP
+.B \-\-has\-note
+Only packages that have a note (see
+.BR aptfz (1)).
+.TP
+.B \-\-no\-note
+Only packages without a note.
+.TP
+.BR \-f ", " \-\-field " \fIFIELD VALUE\fR"
+Only packages whose \fIFIELD\fR matches \fIVALUE\fR. Matching is a
+case\-insensitive substring match unless \fB\-x\fR is given. Repeatable.
+.TP
+.BR \-a ", " \-\-any " \fIVALUE\fR"
+Only packages where any field matches \fIVALUE\fR. Repeatable.
+.TP
+.BR \-x ", " \-\-exact\-match
+Use exact equality instead of substring matching for \fB\-f\fR and \fB\-a\fR.
+.TP
+.BR \-v ", " \-\-invert " [\fIFILTER\fR]"
+Bare \fB\-v\fR inverts the entire result of all other filters and searches,
+as one unit. \fB\-v\fR \fIFILTER\fR (repeatable) inverts only that one canned
+filter and leaves the others untouched. \fIFILTER\fR is one of
+\fBexplicit\fR, \fBdeps\fR, \fBnotadep\fR, \fBnotoptdep\fR, or the letters
+\fBe\fR, \fBd\fR, \fBn\fR, \fBk\fR. Repeated \fB\-v FILTER\fR options are
+combined as NOT(A AND B). The note filters are never inverted.
+.SS Sort options
+.TP
+.BR \-s ", " \-\-sort\-by " [\fIFIELD\fR]"
+Sort by \fIFIELD\fR. The default is Name; a bare \fB\-s\fR means
+Installed_Size. \fB\-\-size\fR is accepted as a synonym.
+.TP
+.BR \-\-asc ", " \-\-desc
+Sort ascending or descending. Size defaults to descending, everything else
+to ascending.
+.SS Size
+.TP
+.BR \-t ", " \-\-totalsize
+Print the total installed size of the (filtered) packages instead of names.
+.SS Other
+.TP
+.BR \-h ", " \-\-help
+Show a usage summary.
+.TP
+.B \-\-version
+Show the version.
+.SH FIELDS
+Names accepted by \fB\-f\fR and \fB\-s\fR (case\-insensitive; space, \fB\-\fR
+and \fB_\fR are equivalent; \fBpackage\fR, \fBdepends\fR and \fBsize\fR are
+accepted as aliases for Name, Depends_On and Installed_Size):
+.PP
+Name, Version, Architecture, Description, Installed_Size (bytes),
+Install_Reason, Section, Priority, Maintainer, Homepage, Source, Essential,
+Multi_Arch, Depends_On, Pre_Depends, Recommends, Suggests, Conflicts, Breaks,
+Provides, Replaces, Required_By, Recommended_By, Suggested_By.
+.PP
+The last three are the reverse of Depends/Pre\-Depends, Recommends and
+Suggests, computed over the installed packages. To find packages with an
+empty field use an exact empty match, e.g.
+.B \-x \-f Required_By ""
+(this is what \fB\-n\fR does).
+.SH EXAMPLES
+.nf
+aptq \-e                       # manually installed packages
+aptq \-e \-n                    # ... that nothing requires
+aptq \-e \-n \-k \-s \-\-desc      # ... and nothing recommends or suggests, biggest first
+aptq \-d \-t                    # total size of dependency packages
+aptq \-f Section games         # packages in a section containing "games"
+aptq \-e \-v notadep \-v notoptdep
+                             # manual packages that something relies on
+aptq \-n \-k | xargs apt show  # pipe names into other tools
+.fi
+.SH CACHE
+The package list is cached in
+.IR $XDG_CACHE_HOME/aptfz/packages.json
+(default \fI~/.cache/aptfz/packages.json\fR; override with
+.BR APTFZ_CACHE_PATH ).
+The cache validates itself on every run against the modification time, size
+and inode of \fI/var/lib/dpkg/status\fR and \fI/var/lib/apt/extended_states\fR
+and is rebuilt automatically when either changed, so there is no refresh
+command and it cannot be stale. Rebuilding takes a fraction of a second.
+.SH EXIT STATUS
+0 on success, 1 on an error (bad field or filter name, dpkg unavailable),
+2 on an invalid command line.
+.SH SEE ALSO
+.BR aptfz (1),
+.BR apt\-mark (8),
+.BR dpkg\-query (1)

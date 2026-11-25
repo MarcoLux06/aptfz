@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+# Byte-compile the private modules so unprivileged runs start faster.
+if [ "$1" = configure ] && command -v py3compile >/dev/null 2>&1; then
+    py3compile -p aptfz /usr/share/aptfz/lib || true
+fi
+exit 0

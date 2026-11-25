@@ -1,0 +1,20 @@
+#!/usr/bin/python3
+# aptfz - part of aptfz. A thin launcher: all logic lives in the lib/ modules.
+#
+# Find lib/ either next to this script (running straight from a git checkout,
+# no install needed) or under /usr/share/aptfz/lib (where the .deb puts it).
+# Both layouts mirror each other, so only the base path ever differs.
+import os
+import sys
+
+_here = os.path.dirname(os.path.realpath(__file__))
+for _libdir in (os.path.join(_here, 'lib'), '/usr/share/aptfz/lib'):
+    if os.path.isfile(os.path.join(_libdir, 'aptfz_cli.py')):
+        sys.path.insert(0, _libdir)
+        break
+else:
+    sys.exit('aptfz: cannot find its library directory')
+
+import aptfz_cli  # noqa: E402
+
+sys.exit(aptfz_cli.run())

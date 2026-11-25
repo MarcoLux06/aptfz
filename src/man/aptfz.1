@@ -1,0 +1,102 @@
+.TH APTFZ 1 "2026-11-25" "aptfz 0.1.0" "User Commands"
+.SH NAME
+aptfz \- interactive explorer for installed apt packages
+.SH SYNOPSIS
+.B aptfz
+[OPTIONS]
+.br
+.B aptfz \-D
+.I PACKAGE NOTE
+.br
+.B aptfz \-D
+.I PACKAGE
+.B \-d
+.br
+.B aptfz \-\-notes\-list
+.SH DESCRIPTION
+.B aptfz
+opens an
+.BR fzf (1)
+picker over the installed packages, with a colorized live preview pane showing
+version, dependencies, recommendations, suggestions, reverse dependencies,
+size, install reason and any note you attached. After you pick a package its
+full preview is printed.
+.PP
+.B aptfz
+accepts the same filter, sort and size options as
+.BR aptq (1),
+which see for their full description. The options listed there determine
+which packages the picker shows.
+.SH OPTIONS
+All filter, sort and size options of
+.BR aptq (1)
+(\fB\-e \-d \-n \-k \-f \-a \-x \-v \-s \-\-asc \-\-desc \-t \-\-has\-note \-\-no\-note\fR).
+With \fB\-t\fR,
+.B aptfz
+prints a sentence describing the selection followed by the total size, instead
+of opening the picker.
+.SS Display options
+.TP
+.B \-\-exact
+Use exact matching in fzf (fzf's \fB\-e\fR).
+.TP
+.B \-\-hide\-notes
+Do not show notes in the preview.
+.SS Notes
+Notes are free\-text reminders attached to a package name, kept in a small
+JSON file independent of the package cache.
+.TP
+.BI \-D " PACKAGE NOTE"
+Set the note for \fIPACKAGE\fR. Must be the first argument.
+.TP
+.BI \-D " PACKAGE " \-d
+Delete the note for \fIPACKAGE\fR.
+.TP
+.B \-\-notes\-list
+List all packages that have notes. Must be the first argument.
+.SS Other
+.TP
+.BR \-h ", " \-\-help
+Show a usage summary.
+.TP
+.B \-\-version
+Show the version.
+.TP
+.B \-\-print\-selection
+Print only the chosen package name instead of its preview. Used by the shell
+key bindings.
+.SH SHELL KEY BINDINGS
+Source one of these from your shell's startup file:
+.PP
+.nf
+source /usr/share/aptfz/key\-bindings.bash    # bash
+source /usr/share/aptfz/key\-bindings.zsh     # zsh
+.fi
+.PP
+This binds \fBctrl\-p\fR to open the picker and insert the selected package
+name at the cursor, so \fBapt remove\fR + ctrl\-p + Enter yields
+\fBapt remove firefox\fR, ready to run.
+.SH FILES
+.TP
+.I ~/.cache/aptfz/packages.json
+Self\-validating package cache (override: \fBAPTFZ_CACHE_PATH\fR). Disposable.
+.TP
+.I ~/.local/share/aptfz/notes.json
+Your notes (override: \fBAPTFZ_NOTES_PATH\fR). Not removed when the package is
+uninstalled. A notes file that cannot be parsed is never overwritten.
+.SH ENVIRONMENT
+.TP
+.B APTFZ_CACHE_PATH, APTFZ_NOTES_PATH
+Override the file locations above. Defaults follow \fBXDG_CACHE_HOME\fR and
+\fBXDG_DATA_HOME\fR.
+.TP
+.B NO_COLOR
+Disable colored output when printing the final preview.
+.SH EXIT STATUS
+0 on success or when the picker is cancelled, 1 on an error (including a
+missing fzf), 2 on an invalid command line.
+.SH SEE ALSO
+.BR aptq (1),
+.BR fzf (1),
+.BR apt\-mark (8),
+.BR dpkg\-query (1)

@@ -1,0 +1,6 @@
+aptfz (0.1.0) unstable; urgency=low
+
+  * Initial release: aptfz (fzf picker) and aptq (non-interactive query)
+    sharing one query engine, with a self-refreshing package cache.
+
+ -- @MAINTAINER@  @DATE@
